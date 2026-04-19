@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Axinity | Attendance Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(circle at 10% 20%, #0a0f1c 0%, #03060e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        /* noise texture */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glass-container {
+            max-width: 680px;
+            width: 100%;
+            margin: 0 auto;
+            backdrop-filter: blur(14px);
+            background: rgba(12, 20, 32, 0.65);
+            border-radius: 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 50px -20px rgba(0, 0, 0, 0.6), 0 0 0 0.5px rgba(255, 255, 255, 0.05) inset;
+            transition: all 0.3s ease;
+            z-index: 2;
+        }
+
+        .glass-inner {
+            padding: 2rem 1.8rem;
+        }
+
+        .brand {
+            text-align: center;
+            margin-bottom: 1.8rem;
+        }
+
+        .brand h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FFFFFF 20%, #9bbaff 90%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+        }
+
+        .brand p {
+            font-size: 0.8rem;
+            color: #8b9bc2;
+            margin-top: 0.3rem;
+            font-weight: 500;
+        }
+
+        /* tab styles */
+        .tabs {
+            display: flex;
+            gap: 0.75rem;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 0.5rem;
+            border-radius: 3rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(4px);
+        }
+
+        .tab-btn {
+            flex: 1;
+            text-align: center;
+            padding: 0.7rem 0;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-radius: 2rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            background: transparent;
+            border: none;
+            color: #b7c4e2;
+            letter-spacing: 0.3px;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(105deg, #2c5cff, #1740c0);
+            color: white;
+            box-shadow: 0 4px 12px rgba(44, 92, 255, 0.25);
+        }
+
+        /* input group */
+        .input-group {
+            margin-bottom: 1.4rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .input-label {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #cddcff;
+            letter-spacing: -0.2px;
+        }
+
+        .input-field {
+            background: rgba(8, 16, 28, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 1.6rem;
+            padding: 0.85rem 1.2rem;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #f0f4ff;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .input-field:focus {
+            border-color: #5f9eff;
+            box-shadow: 0 0 0 3px rgba(95, 158, 255, 0.25);
+            background: rgba(18, 28, 44, 0.9);
+        }
+
+        .extra-input {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, margin 0.2s;
+            margin: 0;
+        }
+
+        .extra-input.show {
+            max-height: 120px;
+            opacity: 1;
+            margin-bottom: 1.4rem;
+        }
+
+        .error-msg {
+            background: rgba(255, 70, 85, 0.18);
+            border-left: 3px solid #ff4d6d;
+            padding: 0.7rem 1rem;
+            border-radius: 1.2rem;
+            font-size: 0.8rem;
+            color: #ffb3bb;
+            margin: 0.5rem 0 1rem 0;
+            backdrop-filter: blur(4px);
+        }
+
+        .stats-card {
+            background: rgba(6, 14, 24, 0.6);
+            backdrop-filter: blur(8px);
+            border-radius: 1.8rem;
+            padding: 1.3rem 1.5rem;
+            margin: 1.2rem 0 1.2rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.2s;
+        }
+
+        .percentage-block {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .big-percent {
+            font-size: 3.2rem;
+            font-weight: 800;
+            background: linear-gradient(120deg, #fff, #bfd2ff);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            line-height: 1;
+        }
+
+        .att-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 500;
+            color: #8ea0ca;
+        }
+
+        .insight-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+            margin-top: 0.8rem;
+        }
+
+        .insight-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 1.2rem;
+            padding: 0.8rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border: 0.5px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .insight-icon {
+            font-size: 1.5rem;
+            min-width: 32px;
+        }
+
+        .insight-text {
+            font-weight: 500;
+            font-size: 0.88rem;
+            color: #cfdfff;
+            line-height: 1.4;
+        }
+
+        .insight-text strong {
+            color: white;
+            font-weight: 700;
+        }
+
+        .warning-text {
+            color: #ffaa66;
+        }
+
+        .motivation {
+            background: rgba(80, 120, 255, 0.1);
+            border-radius: 1.5rem;
+            padding: 0.9rem 1.2rem;
+            margin: 1rem 0 1.2rem;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #c9ddff;
+            border: 1px solid rgba(95, 158, 255, 0.25);
+            transition: all 0.2s;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 0.3rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.8rem 0;
+            border-radius: 2rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            background: rgba(25, 35, 55, 0.9);
+            color: #eef3ff;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(105deg, #2c5cff, #0f2c9e);
+            box-shadow: 0 4px 12px rgba(0, 40, 200, 0.2);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(105deg, #4370ff, #1e3bc9);
+            box-shadow: 0 10px 18px rgba(0, 60, 220, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(50, 65, 95, 0.9);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 1.8rem;
+            font-size: 0.7rem;
+            color: #5f7299;
+        }
+
+        @media (max-width: 540px) {
+            .glass-inner {
+                padding: 1.4rem;
+            }
+            .big-percent {
+                font-size: 2.6rem;
+            }
+            .insight-text {
+                font-size: 0.8rem;
+            }
+            .btn-group {
+                flex-direction: column;
+            }
+            .insight-icon {
+                font-size: 1.3rem;
+            }
+        }
+
+        .fade-up {
+            animation: fadeUp 0.3s ease-out;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="glass-container">
+    <div class="glass-inner">
+        <div class="brand">
+            <h1>Axinity Attedence Calculator</h1>
+            <p>dual-mode attendance · master your semester</p>
+        </div>
+
+        <!-- toggle tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-mode="current">📊 Current Mode</button>
+            <button class="tab-btn" data-mode="semester">🎯 Semester Goal Mode</button>
+        </div>
+
+        <!-- Inputs: common + semester extra -->
+        <div class="input-group">
+            <div class="input-label"><span>✅ Classes Attended (so far)</span><span>📌</span></div>
+            <input type="number" id="attendedInput" class="input-field" placeholder="e.g., 42" value="42" step="1" min="0">
+        </div>
+
+        <div class="input-group">
+            <div class="input-label"><span>🏫 Classes Held (so far)</span><span>📅</span></div>
+            <input type="number" id="heldInput" class="input-field" placeholder="e.g., 56" value="56" step="1" min="1">
+        </div>
+
+        <!-- extra semester total input (hidden by default) -->
+        <div id="semesterExtraWrapper" class="extra-input">
+            <div class="input-group" style="margin-bottom:0;">
+                <div class="input-label"><span>📆 Total Semester Classes</span><span>🎯</span></div>
+                <input type="number" id="totalSemesterInput" class="input-field" placeholder="e.g., 120" value="120" step="1" min="1">
+            </div>
+        </div>
+
+        <div id="errorBox" class="error-msg" style="display: none;"></div>
+
+        <!-- stats & insights -->
+        <div class="stats-card">
+            <div class="percentage-block">
+                <div class="big-percent" id="attPercentDisplay">— %</div>
+                <div class="att-label">current attendance</div>
+            </div>
+            <div class="insight-list" id="insightsList">
+                <div class="insight-item"><span class="insight-icon">⚡</span><span class="insight-text">Ready for insights</span></div>
+            </div>
+        </div>
+
+        <div id="motivationMessage" class="motivation">✨ Stay consistent, every class counts ✨</div>
+
+        <div class="btn-group">
+            <button id="resetBtn" class="btn btn-secondary">⟳ Reset</button>
+            <button id="refreshBtn" class="btn btn-primary">📈 Update</button>
+        </div>
+        <footer>75% threshold · Plan your academic success</footer>
+    </div>
+</div>
+
+<script>
+    // DOM elements
+    const attendedInput = document.getElementById('attendedInput');
+    const heldInput = document.getElementById('heldInput');
+    const totalSemesterInput = document.getElementById('totalSemesterInput');
+    const semesterWrapper = document.getElementById('semesterExtraWrapper');
+    const errorBox = document.getElementById('errorBox');
+    const attPercentDisplay = document.getElementById('attPercentDisplay');
+    const insightsList = document.getElementById('insightsList');
+    const motivationDiv = document.getElementById('motivationMessage');
+    const resetBtn = document.getElementById('resetBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const tabBtns = document.querySelectorAll('.tab-btn');
+
+    let currentMode = 'current'; // 'current' or 'semester'
+
+    // helpers
+    function showError(msg) {
+        errorBox.style.display = 'block';
+        errorBox.textContent = msg;
+        errorBox.classList.add('fade-up');
+        setTimeout(() => errorBox.classList.remove('fade-up'), 250);
+    }
+
+    function hideError() {
+        errorBox.style.display = 'none';
+        errorBox.textContent = '';
+    }
+
+    // validation for both modes
+    function getBaseInputs() {
+        let attendedRaw = attendedInput.value.trim();
+        let heldRaw = heldInput.value.trim();
+        if (attendedRaw === "") attendedRaw = "0";
+        if (heldRaw === "") heldRaw = "0";
+        const attended = Number(attendedRaw);
+        const held = Number(heldRaw);
+        if (isNaN(attended) || isNaN(held)) {
+            showError("❌ Please enter valid numbers for attended & held.");
+            return null;
+        }
+        if (!Number.isInteger(attended) || !Number.isInteger(held)) {
+            showError("📌 Values must be whole numbers.");
+            return null;
+        }
+        if (held <= 0) {
+            showError("⚠️ Classes held so far must be at least 1.");
+            return null;
+        }
+        if (attended < 0) {
+            showError("📉 Attended cannot be negative.");
+            return null;
+        }
+        if (attended > held) {
+            showError("🔁 Attended cannot exceed classes held so far.");
+            return null;
+        }
+        hideError();
+        return { attended, held };
+    }
+
+    function getSemesterTotal() {
+        let semRaw = totalSemesterInput.value.trim();
+        if (semRaw === "") semRaw = "0";
+        const semTotal = Number(semRaw);
+        if (isNaN(semTotal) || !Number.isInteger(semTotal)) {
+            showError("❌ Semester total must be a valid whole number.");
+            return null;
+        }
+        if (semTotal <= 0) {
+            showError("📆 Total semester classes must be at least 1.");
+            return null;
+        }
+        return semTotal;
+    }
+
+    // ---- CURRENT MODE logic ----
+    function computeCurrentMode(attended, held) {
+        const percent = (attended / held) * 100;
+        let canMiss = 0;
+        let needAttend = 0;
+        if (percent >= 75) {
+            // max missed while staying >=75%: attended / (held + miss) >= 0.75
+            const maxTotalFor75 = attended / 0.75;
+            let possibleMiss = Math.floor(maxTotalFor75 - held);
+            if (possibleMiss < 0) possibleMiss = 0;
+            canMiss = possibleMiss;
+        } else {
+            // need consecutive: (attended + k)/(held + k) >= 0.75 => k >= ceil(3*held - 4*attended)
+            let rawK = (3 * held) - (4 * attended);
+            let needed = Math.ceil(rawK);
+            if (needed < 0) needed = 0;
+            needAttend = needed;
+        }
+        return { percent, canMiss, needAttend, isAbove: percent >= 75 };
+    }
+
+    // ---- SEMESTER MODE logic ----
+    function computeSemesterMode(attended, heldSoFar, semesterTotal) {
+        if (semesterTotal < heldSoFar) {
+            showError("⚠️ Total semester classes cannot be less than classes held so far.");
+            return null;
+        }
+        const currentPercent = (attended / heldSoFar) * 100;
+        const remainingTotal = semesterTotal - heldSoFar; // classes not yet conducted
+        if (remainingTotal < 0) remainingTotal = 0;
+        
+        // Goal: final attendance >=75% after all semester classes
+        // final attendance = (attended + x) / (heldSoFar + y) ??? wait careful:
+        // Remaining classes = R. Among those, we can choose to attend 'a' classes (0 <= a <= R). final attended = attended + a, final total = semesterTotal.
+        // Condition: (attended + a) / semesterTotal >= 0.75 => a >= 0.75*semesterTotal - attended
+        const minRequiredAttendance = Math.ceil(0.75 * semesterTotal - attended);
+        let minNeeded = Math.max(0, minRequiredAttendance);
+        let maxMissable = 0;
+        let impossible = false;
+        
+        if (minNeeded > remainingTotal) {
+            impossible = true;
+        } else {
+            // maximum classes that can be missed in remaining (i.e., not attend) while still ending >=75%
+            // missed in remaining = R - a, where a = minNeeded? Actually we can attend more than min. For max miss, attend exactly minNeeded.
+            // maxMissable = remainingTotal - minNeeded
+            maxMissable = remainingTotal - minNeeded;
+            if (maxMissable < 0) maxMissable = 0;
+        }
+        
+        return {
+            currentPercent,
+            remainingTotal,
+            minNeeded,
+            maxMissable,
+            impossible,
+            semesterTotal
+        };
+    }
+
+    function getMotivation(percent, mode, extraData = null) {
+        if (isNaN(percent)) return "✨ Input numbers to unlock motivation ✨";
+        if (mode === 'current') {
+            if (percent >= 90) return "🏆 Elite! You're a consistency legend. Keep dominating!";
+            if (percent >= 80) return "📈 Great rhythm! Well above safety zone.";
+            if (percent >= 75) return "✅ Safe zone. Strategic misses possible, but stay aware!";
+            if (percent >= 60) return "⚠️ Below 75% — start attending consecutively to bounce back.";
+            return "🔥 Urgent: every class matters. Your comeback starts now!";
+        } else {
+            // semester mode
+            if (extraData && extraData.impossible) return "🚫 Impossible to reach 75% this semester. Plan early next term!";
+            if (percent >= 90) return "🌟 On track for distinction! Maintain momentum.";
+            if (percent >= 80) return "💪 Solid standing. Slight buffer for remainder.";
+            if (percent >= 75) return "✅ Currently safe but check semester target!";
+            if (percent >= 60) return "⚠️ Need active planning to finish above 75%.";
+            return "📉 Critical zone: act now to salvage semester target.";
+        }
+    }
+
+    function updateUI() {
+        const base = getBaseInputs();
+        if (!base) {
+            attPercentDisplay.textContent = "— %";
+            insightsList.innerHTML = `<div class="insight-item"><span class="insight-icon">⚠️</span><span class="insight-text">Fix errors to see insights</span></div>`;
+            motivationDiv.innerHTML = "🔍 Correct invalid fields above";
+            return;
+        }
+        const { attended, held } = base;
+        
+        if (currentMode === 'current') {
+            const { percent, canMiss, needAttend, isAbove } = computeCurrentMode(attended, held);
+            attPercentDisplay.textContent = `${percent.toFixed(2)}%`;
+            let insightsHtml = '';
+            if (isAbove) {
+                if (canMiss === 0) insightsHtml += `<div class="insight-item"><span class="insight-icon">🛡️</span><span class="insight-text">You're exactly at threshold — no more misses allowed above 75%.</span></div>`;
+                else if (canMiss === 1) insightsHtml += `<div class="insight-item"><span class="insight-icon">⏸️</span><span class="insight-text">You can miss <strong>${canMiss}</strong> more class while staying ≥75%.</span></div>`;
+                else insightsHtml += `<div class="insight-item"><span class="insight-icon">📆</span><span class="insight-text">You can miss up to <strong>${canMiss}</strong> classes without dropping below 75%.</span></div>`;
+                insightsHtml += `<div class="insight-item"><span class="insight-icon">✅</span><span class="insight-text">Attendance safe. Keep up the consistency!</span></div>`;
+            } else {
+                if (needAttend === 1) insightsHtml += `<div class="insight-item"><span class="insight-icon">🔥</span><span class="insight-text">Attend <strong>${needAttend}</strong> more class consecutively to reach 75%.</span></div>`;
+                else insightsHtml += `<div class="insight-item"><span class="insight-icon">⚡</span><span class="insight-text">Attend <strong>${needAttend}</strong> classes in a row to reach 75% attendance.</span></div>`;
+                const shortfall = (75 - percent).toFixed(2);
+                insightsHtml += `<div class="insight-item"><span class="insight-icon">📉</span><span class="insight-text">Shortfall: <strong>${shortfall}%</strong> below 75%. Every class matters!</span></div>`;
+            }
+            insightsList.innerHTML = insightsHtml;
+            const msg = getMotivation(percent, 'current');
+            motivationDiv.innerHTML = msg;
+        } 
+        else {  // Semester Mode
+            const semesterTotalVal = getSemesterTotal();
+            if (semesterTotalVal === null) {
+                attPercentDisplay.textContent = `${(attended / held * 100).toFixed(2)}%`;
+                insightsList.innerHTML = `<div class="insight-item"><span class="insight-icon">⚠️</span><span class="insight-text">Invalid semester total value</span></div>`;
+                motivationDiv.innerHTML = "📆 Please set total semester classes correctly.";
+                return;
+            }
+            const semesterTotal = semesterTotalVal;
+            if (semesterTotal < held) {
+                showError("Total semester classes cannot be less than classes held so far.");
+                attPercentDisplay.textContent = `${(attended / held * 100).toFixed(2)}%`;
+                insightsList.innerHTML = `<div class="insight-item"><span class="insight-icon">⚠️</span><span class="insight-text">Semester total < held so far. Adjust values.</span></div>`;
+                return;
+            }
+            hideError();
+            const semData = computeSemesterMode(attended, held, semesterTotal);
+            if (!semData) return;
+            const { currentPercent, remainingTotal, minNeeded, maxMissable, impossible, semesterTotal: totalSem } = semData;
+            attPercentDisplay.textContent = `${currentPercent.toFixed(2)}%`;
+            
+            let insightsHtml = '';
+            if (impossible) {
+                insightsHtml += `<div class="insight-item"><span class="insight-icon">🚫</span><span class="insight-text warning-text"><strong>IMPOSSIBLE</strong> — Even attending all ${remainingTotal} remaining classes, final attendance = ${((attended + remainingTotal) / totalSem * 100).toFixed(1)}% &lt; 75%.</span></div>`;
+            } else {
+                insightsHtml += `<div class="insight-item"><span class="insight-icon">📆</span><span class="insight-text">Remaining classes: <strong>${remainingTotal}</strong></span></div>`;
+                insightsHtml += `<div class="insight-item"><span class="insight-icon">🎯</span><span class="insight-text">Minimum attendance needed from remaining: <strong>${minNeeded}</strong> class${minNeeded !== 1 ? 'es' : ''}</span></div>`;
+                if (maxMissable > 0) {
+                    insightsHtml += `<div class="insight-item"><span class="insight-icon">😎</span><span class="insight-text">You can miss up to <strong>${maxMissable}</strong> class${maxMissable !== 1 ? 'es' : ''} in remaining & still finish ≥75%.</span></div>`;
+                } else {
+                    insightsHtml += `<div class="insight-item"><span class="insight-icon">⚠️</span><span class="insight-text">Cannot miss any remaining class to reach 75% final attendance.</span></div>`;
+                }
+                // show final target preview
+                const finalAttendIfMin = attended + minNeeded;
+                const finalPercent = (finalAttendIfMin / totalSem) * 100;
+                insightsHtml += `<div class="insight-item"><span class="insight-icon">🏁</span><span class="insight-text">With minimum required, final attendance = <strong>${finalPercent.toFixed(1)}%</strong></span></div>`;
+            }
+            // additional warning if current attendance <75 but semester still possible
+            if (!impossible && currentPercent < 75) {
+                insightsHtml += `<div class="insight-item"><span class="insight-icon">📌</span><span class="insight-text">Current below 75%, but semester goal is achievable with dedication.</span></div>`;
+            }
+            insightsList.innerHTML = insightsHtml;
+            const msg = getMotivation(currentPercent, 'semester', { impossible });
+            motivationDiv.innerHTML = msg;
+        }
+        // add fade to percent
+        attPercentDisplay.classList.add('fade-up');
+        setTimeout(() => attPercentDisplay.classList.remove('fade-up'), 300);
+    }
+
+    function switchMode(mode) {
+        currentMode = mode;
+        if (mode === 'semester') {
+            semesterWrapper.classList.add('show');
+        } else {
+            semesterWrapper.classList.remove('show');
+        }
+        // update active tab style
+        tabBtns.forEach(btn => {
+            if (btn.getAttribute('data-mode') === mode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        // re-run validation + update
+        updateUI();
+    }
+
+    function resetToDefault() {
+        attendedInput.value = "42";
+        heldInput.value = "56";
+        totalSemesterInput.value = "120";
+        if (currentMode === 'current') {
+            // stay same
+        }
+        updateUI();
+    }
+
+    // Event listeners
+    refreshBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        updateUI();
+        refreshBtn.style.transform = "scale(0.97)";
+        setTimeout(() => refreshBtn.style.transform = "", 120);
+    });
+    resetBtn.addEventListener('click', () => {
+        resetToDefault();
+    });
+    attendedInput.addEventListener('input', () => updateUI());
+    heldInput.addEventListener('input', () => updateUI());
+    totalSemesterInput.addEventListener('input', () => {
+        if (currentMode === 'semester') updateUI();
+    });
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mode = btn.getAttribute('data-mode');
+            if (mode === 'current') switchMode('current');
+            else switchMode('semester');
+        });
+    });
+    
+    // edge handling: if held less than attended
+    heldInput.addEventListener('blur', () => {
+        let attended = parseInt(attendedInput.value,10);
+        let held = parseInt(heldInput.value,10);
+        if (!isNaN(attended) && !isNaN(held) && attended > held && held>0) {
+            attendedInput.value = held;
+        }
+        updateUI();
+    });
+    attendedInput.addEventListener('blur', () => {
+        let attended = parseInt(attendedInput.value,10);
+        let held = parseInt(heldInput.value,10);
+        if (!isNaN(attended) && !isNaN(held) && attended > held && held>0) attendedInput.value = held;
+        updateUI();
+    });
+    
+    // initial load
+    switchMode('current');
+</script>
+</body>
+</html>
